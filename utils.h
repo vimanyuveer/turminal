@@ -1,8 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>								// Needed for POSIX syscalls
 
+// Prototypes
+char * read_line(void);
+void split_tokens(void);
+char ** tokenize_line(char *);
+int dash_launch(char **);
+void command_print(char *);
+char * lower_string(char *);
+char * copy_string(char *, char *);
 
 
 char * read_line() {
@@ -46,7 +55,7 @@ char * read_line() {
 
 
 void split_tokens() {
-    // TO BE IMPLEMENTED -- > REPLACE strok with it
+    // TO BE IMPLEMENTED -- > REPLACE strtok with it
 }
 
 
@@ -56,7 +65,6 @@ char ** tokenize_line(char * user_input_line) {
     - Every subsequent 
     */
 
-    char TOKENIZE_DELIM = " ";                                   // Space-DELIMited tokens
     int TOKEN_SIZE = 1024;                              // Initial buffer size
     int token_Pos = 0;                                  // Position of the token
 
@@ -68,7 +76,7 @@ char ** tokenize_line(char * user_input_line) {
         exit(EXIT_FAILURE);
     }
 
-    token = strtok(user_input_line, TOKENIZE_DELIM);         // Tokenize the first word (https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/)
+    token = strtok(user_input_line, TOKEN_DELIM);         // Tokenize the first word (https://www.geeksforgeeks.org/strtok-strtok_r-functions-c-examples/)
 
     // Driving Loop for this function  - tokenize the entire line
     while (token != NULL) {
@@ -86,7 +94,7 @@ char ** tokenize_line(char * user_input_line) {
             }
         }
         
-        token = strok(NULL, TOKENIZE_DELIM);                 // TOKEN stores the next seperated word. 
+        token = strtok(NULL, TOKEN_DELIM);                 // TOKEN stores the next seperated word. 
     }
 
     token_list[token_Pos] = NULL;                      // Last one becomes null to mark the end.
@@ -94,25 +102,49 @@ char ** tokenize_line(char * user_input_line) {
 }
 
 
-int dash_launch() {
-    // TO BE IMPLEMENTED
-    return 0;
+int dash_launch(char ** args) {                         // Takes in the list of arguments to be processed
+    pid_t cpid;
+    int status;
+
+    // If the user wants to exit
+    if (strcmp(lower_string(args[0]), "exit") == 0)
+        return 0;
+
+    cpid = fork();
+
+    if (cpid == 0) {
+        if (execvp(args[0], args) < 0)
+            printf("dash: command not found: %s\n", args[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    else if (cpid < 0)
+        printf("Error Forking \n");
+    
+    else 
+        waitpid(cpid, & status, WUNTRACED);
+    
+    return 1;
 }
 
 
-void main_loop() {
-	char *line;									// Holds command string
-	char **args;
-	int status = 1;
-
-	do {
-		printf("> ");							// Print the Prompt for this line of the terminal
-		line = read_line();
-		flag = 0;
-		args = split_lines(line);
-		status = dash_launch(args);
-		free(line);
-		free(args);
-	} while (status);
+void command_print(char * input_text) {                       // PRINT Something to the prompt
+    printf("%s", input_text);
 }
 
+
+char * lower_string(char * input_string) {                  // To get lowercase commands from mixed-case input
+    char * output_string;
+    for (int i = 0; input_string[i]; i++) {
+        output_string[i] = tolower(input_string[i]);
+    }
+    return output_string;
+}
+
+
+char * copy_string(char * input_string, char * output_string) {     // Assign a string to another
+    for (int i = 0; input_string[i]; i++)
+        input_string[i] = output_string[i];
+    
+    return output_string;
+}
